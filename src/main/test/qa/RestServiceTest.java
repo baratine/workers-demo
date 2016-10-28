@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.caucho.junit.ConfigurationBaratine;
 import com.caucho.junit.ServiceTest;
@@ -59,7 +60,14 @@ public class RestServiceTest
     Future<long[]> call2 = _executors.submit(this::invoke);
 
     long[] response1 = call1.get();
+    System.out.println();
+    System.out.println();
+    System.out.println();
+    System.out.println("RestServiceTest.test response 1 received"
+                       + System.currentTimeMillis());
     long[] response2 = call2.get();
+    System.out.println("RestServiceTest.test response 2 received"
+                       + System.currentTimeMillis());
 
     System.out.println();
 
@@ -72,21 +80,22 @@ public class RestServiceTest
     //assert that slow received request at the 'same' time
     //with accuracy of 100 ms
 
-    long nano = 1000000;
+    Assert.assertTrue(Math.abs(response1[0] - response2[0]) < 100);
 
-    Assert.assertTrue(Math.abs(response1[0] - response2[0]) < (100 * nano));
-
-    //assert that future received response at the 'same' time
+    //assert that future received responses ~10s apart
     //with accuracy of 100 ms
-    Assert.assertTrue(Math.abs(response1[1] - response2[1]) < (100 * nano));
+    Assert.assertTrue(Math.abs(response1[1] - response2[1]) < 10100);
 
-    //assert that processing of request took more then 2000 ms
-    Assert.assertTrue(response1[1] - response1[0] >= (2000 * nano));
-    Assert.assertTrue(response2[1] - response2[0] >= (2000 * nano));
+    //assert that processing of request 1 took more then 2000 ms
+    Assert.assertTrue(response1[1] - response1[0] >= 2000);
+
+    //assert that processing of request 2 took more then 12000 ms
+    Assert.assertTrue(response2[1] - response2[0] >= 12000);
 
     //assert that processing of request took less then 2100 ms
-    Assert.assertTrue(response1[1] - response1[0] < (2100 * nano));
-    Assert.assertTrue(response2[1] - response2[0] < (2100 * nano));
+    Assert.assertTrue(response1[1] - response1[0] < 2100);
+    //assert that processing of request took less then 12100 ms
+    Assert.assertTrue(response2[1] - response2[0] < 12100);
   }
 
   private long[] invoke() throws IOException
@@ -101,7 +110,7 @@ public class RestServiceTest
     conn.disconnect();
 
     //should be 2 seconds after slow received its request
-    long responseTime = System.nanoTime();
+    long responseTime = System.currentTimeMillis();
 
     return new long[]{Long.parseLong(new String(bytes, 0, l)),
                       responseTime};
@@ -110,6 +119,8 @@ public class RestServiceTest
   private static class SlowServerMock implements HttpHandler
   {
     HttpServer _server;
+    int[] m = new int[]{1, 6};
+    AtomicInteger i = new AtomicInteger();
 
     public SlowServerMock()
     {
@@ -136,10 +147,13 @@ public class RestServiceTest
       while (requestBody.read() > 0) ;
 
       // response indicates when the request was received by slow server
-      byte[] response = Long.toString(System.nanoTime()).getBytes();
+      byte[] response = Long.toString(System.currentTimeMillis()).getBytes();
 
       try {
-        Thread.sleep(2000);
+        int sleep = 2000 * m[i.getAndIncrement()];
+        System.out.println("\n\nSlowServerMock.sleep [" + this + "]" + sleep);
+        Thread.sleep(sleep);
+
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
@@ -159,5 +173,3 @@ public class RestServiceTest
     }
   }
 }
-
-
