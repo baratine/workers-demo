@@ -1,0 +1,42 @@
+apply plugin: 'application'
+apply plugin: 'java'
+
+mainClassName = 'examples.rest.RestService'
+
+repositories {
+  mavenLocal();
+  mavenCentral();
+}
+
+configurations {
+  provided
+  compile.extendsFrom provided
+}
+
+sourceSets {
+  main {
+    resources {
+      srcDir 'src/main/resources'
+    }
+  }
+}
+
+sourceSets.main.resources.exclude 'web/node_modules/**';
+sourceSets.main.resources.exclude 'web/typings/**';
+
+dependencies {
+  compile 'io.baratine:baratine:1.0.1';
+  compile 'javax.json:javax.json-api:1.0';
+  compile 'org.glassfish:javax.json:1.0.4';
+  compile 'org.glassfish.jersey.core:jersey-client:2.23.2';
+
+  testCompile 'junit:junit:4.12'
+}
+
+jar {
+  dependsOn configurations.compile
+}
+
+task wrapper(type: Wrapper) {
+  gradleVersion = '2.11'
+}
