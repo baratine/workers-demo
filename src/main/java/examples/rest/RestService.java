@@ -11,11 +11,11 @@ public class RestService
 {
   @Inject
   @Service
-  private IntuitProxy _intuit;
+  private BlockingService _blockingService;
 
   @Get("/hello")
   public void hello(RequestWeb requestWeb)
   {
-    _intuit.service(requestWeb.then());
+    _blockingService.service(requestWeb.then());
   }
 }

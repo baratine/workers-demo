@@ -19,7 +19,7 @@ import com.caucho.junit.WebRunnerBaratine;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import examples.rest.IntuitProxy;
+import examples.rest.BlockingService;
 import examples.rest.RestService;
 import org.junit.After;
 import org.junit.Assert;
@@ -29,25 +29,25 @@ import org.junit.runner.RunWith;
 
 @RunWith(WebRunnerBaratine.class)
 @ServiceTest(RestService.class)
-@ServiceTest(IntuitProxy.class)
+@ServiceTest(BlockingService.class)
 @ConfigurationBaratine(testTime = -1)
 public class RestServiceTest
 {
-  private IntuitMockServer _mock;
+  private SlowServerMock _slowServer;
 
   private ExecutorService _executors;
 
   @Before
   public void setup()
   {
-    _mock = new IntuitMockServer();
+    _slowServer = new SlowServerMock();
     _executors = Executors.newFixedThreadPool(4);
   }
 
   @After
   public void destroy()
   {
-    _mock.stop();
+    _slowServer.stop();
     _executors.shutdownNow();
   }
 
@@ -66,10 +66,10 @@ public class RestServiceTest
     System.out.println(Arrays.toString(response1));
     System.out.println(Arrays.toString(response2));
 
-    //responseX[0] indicates when intuit recieved request for processing
+    //responseX[0] indicates when slow recieved request for processing
     //responseX[1] indicates when response was received into the future
 
-    //assert that intuit received request at the 'same' time
+    //assert that slow received request at the 'same' time
     //with accuracy of 100 ms
 
     long nano = 1000000;
@@ -100,18 +100,18 @@ public class RestServiceTest
 
     conn.disconnect();
 
-    //should be 2 seconds after intuit received its request
+    //should be 2 seconds after slow received its request
     long responseTime = System.nanoTime();
 
     return new long[]{Long.parseLong(new String(bytes, 0, l)),
                       responseTime};
   }
 
-  private static class IntuitMockServer implements HttpHandler
+  private static class SlowServerMock implements HttpHandler
   {
     HttpServer _server;
 
-    public IntuitMockServer()
+    public SlowServerMock()
     {
       try {
         InetSocketAddress localhost = new InetSocketAddress(8888);
@@ -135,7 +135,7 @@ public class RestServiceTest
 
       while (requestBody.read() > 0) ;
 
-      //intuit response indicates when the request was received by intuit
+      // response indicates when the request was received by slow server
       byte[] response = Long.toString(System.nanoTime()).getBytes();
 
       try {

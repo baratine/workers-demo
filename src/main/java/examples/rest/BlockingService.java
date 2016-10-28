@@ -12,7 +12,7 @@ import io.baratine.service.Workers;
 @Service
 @Workers(20)
 @Startup
-public class IntuitProxy
+public class BlockingService
 {
   public void service(Result<String> result)
   {
